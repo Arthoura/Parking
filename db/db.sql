@@ -19,7 +19,7 @@ CREATE TABLE PARKING(
  	entry_time varchar (100) not null
 )
 
-CREATE TABLE history(
+CREATE TABLE HISTORY(
 	id biserial not null primary key,
 	user_id bigint not null references USERS(id),
 	vehicles_id bigint not null references VEHICLE(id),
