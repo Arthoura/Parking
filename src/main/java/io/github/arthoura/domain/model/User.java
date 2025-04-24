@@ -19,6 +19,10 @@ public class User {
     @Column(name = "birthday")
     private String birthday;
 
+
+    @Column(name = "email")
+    private String email;
+
     public Long getId() {
         return id;
     }
@@ -49,5 +53,13 @@ public class User {
 
     public void setCpf(String cpf) {
         this.cpf = cpf;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 }

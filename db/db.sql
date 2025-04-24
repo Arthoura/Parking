@@ -25,6 +25,6 @@ CREATE TABLE HISTORY(
 	vehicles_id bigint not null references VEHICLE(id),
 	entry_time varchar (100) not null,
 	exit_time varchar (100) not null
-
-
 )
+
+ALTER TABLE USERS ADD email VARCHAR(100);

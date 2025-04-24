@@ -13,6 +13,9 @@ public class CreateUserRequest {
     @NotBlank(message = "cpf is required")
     private String cpf;
 
+    @NotBlank(message = "email is required")
+    private String email;
+
     public String getBirthday() {
         return birthday;
     }
@@ -35,5 +38,13 @@ public class CreateUserRequest {
 
     public void setCpf(String cpf) {
         this.cpf = cpf;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 }
