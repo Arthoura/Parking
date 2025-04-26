@@ -8,6 +8,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 
 @ApplicationScoped
 public class ParkingRepository implements PanacheRepository<Parking> {
+    private Integer parkingSize = 0;
 
     public Boolean alreadyExistUser(User user){
         if(find("user", user).firstResult() == null){
@@ -21,5 +22,13 @@ public class ParkingRepository implements PanacheRepository<Parking> {
             return false;
         }
         return true;
+    }
+
+    public Integer getParkingSize() {
+        return parkingSize;
+    }
+
+    public void setParkingSize(Integer parkingSize) {
+        this.parkingSize = parkingSize;
     }
 }
