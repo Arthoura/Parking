@@ -1,13 +1,16 @@
 package io.github.arthoura.rest;
 
 import io.github.arthoura.VehicleType;
+import io.github.arthoura.domain.model.History;
 import io.github.arthoura.domain.model.Parking;
 import io.github.arthoura.domain.model.User;
 import io.github.arthoura.domain.model.Vehicle;
+import io.github.arthoura.domain.repository.HistoryRepository;
 import io.github.arthoura.domain.repository.ParkingRepository;
 import io.github.arthoura.domain.repository.UsersRepository;
 import io.github.arthoura.domain.repository.VehicleRepository;
 import io.github.arthoura.rest.Dto.*;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
@@ -23,15 +26,19 @@ public class ParkingResource {
     private ParkingRepository repository;
     private UsersRepository usersRepository;
     private VehicleRepository vehicleRepository;
+    private HistoryRepository historyRepository;
 
     @Inject
-    public ParkingResource(ParkingRepository repository, UsersRepository usersRepository, VehicleRepository vehicleRepository) {
+    public ParkingResource(ParkingRepository repository, UsersRepository usersRepository,
+                           VehicleRepository vehicleRepository, HistoryRepository historyRepository) {
         this.repository = repository;
         this.usersRepository = usersRepository;
         this.vehicleRepository = vehicleRepository;
+        this.historyRepository = historyRepository;
     }
 
     @POST
+    @RolesAllowed({"Admin"})
     public Response initParking(InitParkingRequest initParkingRequest){
         repository.setParkingSize(initParkingRequest.getSize());
         return Response.status(Response.Status.CREATED).entity(repository.getParkingSize()).build();
@@ -40,14 +47,19 @@ public class ParkingResource {
     @PUT
     @Path("{userId}")
     @Transactional
+    @RolesAllowed({"User"})
     public Response userEntry(@PathParam("userId") Long userId, EntryUserRequest entryUserRequest){
 
-        if(repository.count() >= repository.getParkingSize()){
-            return Response.status(Response.Status.CONFLICT).build();
+        if(repository.count() > repository.getParkingSize()){
+            return Response.status(Response.Status.CONFLICT)
+                    .entity("{\"message\": \"Estacionamento cheio. Por favor, aguarde.\"} ")
+                    .build();
         }
 
         if(!entryUserRequest.getType_vehicle().equals("car") && !entryUserRequest.getType_vehicle().equals("moto") ){
-            return Response.status(Response.Status.BAD_REQUEST).entity("{\"message\": \"Tipo de veículo precisa ser 'car' ou 'moto'\"}").build();
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("{\"message\": \"Tipo de veículo precisa ser 'car' ou 'moto'\"}")
+                    .build();
         }
 
         User user = usersRepository.findById(userId);
@@ -57,14 +69,18 @@ public class ParkingResource {
         }
 
         if(repository.alreadyExistUser(user)){
-            return Response.status(Response.Status.CONFLICT).build();
+            return Response.status(Response.Status.CONFLICT)
+                    .entity("{\"message\": \"Usuário já está no estacionamento.\"}")
+                    .build();
         }
 
         Parking parking = new Parking();
         Vehicle vehicleSearch = vehicleRepository.find("plate", entryUserRequest.getPlate()).firstResult();
 
         if(repository.alreadyExistVehicle(vehicleSearch)){
-            return Response.status(Response.Status.CONFLICT).build();
+            return Response.status(Response.Status.CONFLICT)
+                    .entity("{\"message\": \"Veículo já está no estacionamento\"}")
+                    .build();
         }
 
         if(vehicleSearch == null){
@@ -82,17 +98,20 @@ public class ParkingResource {
         parking.setUser(user);
         parking.setEntry_time(LocalDateTime.now().toString());
         repository.persist(parking);
+        repository.setParkingSize(repository.getParkingSize()-1);
         return Response.status(Response.Status.OK).entity(parking).build();
 
     }
 
     @GET
+    @RolesAllowed({"Admin"})
     public Response listAllVehicles(){
         return Response.status(Response.Status.OK).entity(ResponseListUsers.listVehicles(repository.findAll().list())).build();
     }
 
     @GET
     @Path("{userId}")
+    @RolesAllowed({"User"})
     public Response getValue(@PathParam("userId") Long userId){
         User user = usersRepository.findById(userId);
         if(user == null){
@@ -124,14 +143,28 @@ public class ParkingResource {
     @DELETE
     @Path("{userId}")
     @Transactional
+    @RolesAllowed({"User"})
     public Response exitUser(@PathParam("userId") Long userId){
         User user = usersRepository.findById(userId);
         Parking parking = repository.find("user", user).firstResult();
         repository.delete(parking);
+        repository.setParkingSize(repository.getParkingSize()+1);
+
+
+        //Adiciona os dados ao histórico
+        History history = new History();
+        history.setUser(user);
+        history.setVehicle(parking.getVehicle());
+        history.setEntry_time(parking.getEntry_time());
+        history.setExit_time(LocalDateTime.now().toString());
+        historyRepository.persist(history);
+
         return Response.ok().build();
+
     }
 
     @PATCH
+    @RolesAllowed({"Admin"})
     public Response alterSize(AlterSizeRequest alterSizeRequest){
         if(alterSizeRequest.getNewSize() < 0){
             return Response.status(Response.Status.BAD_REQUEST).build();

@@ -6,6 +6,8 @@ import io.github.arthoura.rest.Dto.CreateUserRequest;
 import io.quarkus.hibernate.orm.panache.PanacheQuery;
 import io.quarkus.mailer.Mail;
 import io.quarkus.mailer.Mailer;
+import jakarta.annotation.security.PermitAll;
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.*;
@@ -26,6 +28,7 @@ public class UserResource {
 
     @POST
     @Transactional
+    @PermitAll
     public Response createUser(CreateUserRequest createUserRequest){
         Optional<User> userConsultByCpf = repository.find("cpf", createUserRequest.getCpf()).firstResultOptional();
         if(userConsultByCpf.isPresent()){
@@ -45,6 +48,7 @@ public class UserResource {
     }
 
     @GET
+    @RolesAllowed({"Admin"})
     public Response listAllUsers(){
         PanacheQuery<User> allUsers = repository.findAll();
         if(allUsers.count() > 0) {
@@ -57,6 +61,7 @@ public class UserResource {
 
     @GET
     @Path("{userId}")
+    @RolesAllowed({"Admin"})
     public Response listUser(@PathParam("userId") Long id){
         User userById = repository.findById(id);
         if(userById != null) {
@@ -69,6 +74,7 @@ public class UserResource {
     @DELETE
     @Transactional
     @Path("{userId}")
+    @RolesAllowed({"User", "Admin"})
     public Response deleteUser(@PathParam("userId") Long id){
         User userById = repository.findById(id);
         if(userById != null){
@@ -81,6 +87,7 @@ public class UserResource {
     @PATCH
     @Path("{userId}")
     @Transactional
+    @RolesAllowed({"User", "Admin"})
     public Response updateUser(@PathParam("userId") Long id, CreateUserRequest createUserRequest){
         User userById = repository.findById(id);
         if(userById != null){
@@ -105,7 +112,7 @@ public class UserResource {
     private void sendWelcomeEmail(User user) {
         mailer.send(
                 Mail.withText(user.getEmail(), "Bem-vindo ao nosso sistema!",
-                        "Olá " + user.getName() + ",\n\nObrigado por se cadastrar! Ficamos felizes em tê-lo conosco.\n\nEquipe Quarkus 🚀")
+                        "Olá " + user.getName() + ",\n\nObrigado por se cadastrar! Ficamos felizes em tê-lo conosco.\n\nEquipe Fad Parking 🚀")
         );
     }
 
