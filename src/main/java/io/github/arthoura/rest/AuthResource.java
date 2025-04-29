@@ -1,5 +1,6 @@
 package io.github.arthoura.rest;
 
+import io.github.arthoura.domain.model.User;
 import io.github.arthoura.domain.repository.UsersRepository;
 import io.github.arthoura.rest.Dto.LoginRequest;
 import io.smallrye.jwt.build.Jwt;
@@ -30,20 +31,8 @@ public class AuthResource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.TEXT_PLAIN)
     public Response login(LoginRequest loginRequest) {
-        // Validação simples: em um cenário real, consulte o banco para validar usuário e senha.
-        if (loginRequest.getEmail().equals("ama@ama") && loginRequest.getPassword().equals("123456")) {
-            // Define os papéis do usuário
-            Set<String> roles = new HashSet<>();
-            roles.add("User");
 
-            // Cria o token JWT
-            String token = Jwt.issuer("https://seu-dominio.com/issuer")
-                    .upn(loginRequest.getEmail())
-                    .groups(roles)
-                    .sign();
-            return Response.ok(token).build();
-        }
-        else if(loginRequest.getEmail().equals("fadparking@gmail.com") && loginRequest.getPassword().equals("admin123")){
+        if(loginRequest.getEmail().equals("fadparking@gmail.com") && loginRequest.getPassword().equals("admin123")){
             // Define os papéis do usuário
             Set<String> roles = new HashSet<>();
             roles.add("Admin");
@@ -55,6 +44,25 @@ public class AuthResource {
                     .sign();
             return Response.ok(token).build();
         }
+
+        User user = usersRepository.find("email", loginRequest.getEmail()).firstResult();
+        if(user == null){
+            return Response.status(Response.Status.NOT_FOUND).entity("{\"Messagem\":\"Usuário não encontrado\"}").build();
+        }
+        // Consulta o UsersRepository e checa o email e o cpf (6 primeiros dígitos) como password.
+        if (loginRequest.getEmail().equals(user.getEmail()) && loginRequest.getPassword().equals(user.getCpf().substring(0,6))) {
+            // Define os papéis do usuário
+            Set<String> roles = new HashSet<>();
+            roles.add("User");
+
+            // Cria o token JWT
+            String token = Jwt.issuer("https://seu-dominio.com/issuer")
+                    .upn(loginRequest.getEmail())
+                    .groups(roles)
+                    .sign();
+            return Response.ok(token).build();
+        }
+
         // Caso as credenciais estejam incorretas, retorna 401 Unauthorized.
         return Response.status(Response.Status.UNAUTHORIZED).build();
     }

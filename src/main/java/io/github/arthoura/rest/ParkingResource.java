@@ -41,6 +41,7 @@ public class ParkingResource {
     @RolesAllowed({"Admin"})
     public Response initParking(InitParkingRequest initParkingRequest){
         repository.setParkingSize(initParkingRequest.getSize());
+        repository.setInitialized(true);
         return Response.status(Response.Status.CREATED).entity(repository.getParkingSize()).build();
     }
 
@@ -49,58 +50,57 @@ public class ParkingResource {
     @Transactional
     @RolesAllowed({"User"})
     public Response userEntry(@PathParam("userId") Long userId, EntryUserRequest entryUserRequest){
+        if(repository.isInitialized()) {
+            if (repository.count() > repository.getParkingSize()) {
+                return Response.status(Response.Status.CONFLICT)
+                        .entity("{\"message\": \"Estacionamento cheio. Por favor, aguarde.\"} ")
+                        .build();
+            }
 
-        if(repository.count() > repository.getParkingSize()){
-            return Response.status(Response.Status.CONFLICT)
-                    .entity("{\"message\": \"Estacionamento cheio. Por favor, aguarde.\"} ")
-                    .build();
+            if (!entryUserRequest.getType_vehicle().equals("car") && !entryUserRequest.getType_vehicle().equals("moto")) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity("{\"message\": \"Tipo de veículo precisa ser 'car' ou 'moto'\"}")
+                        .build();
+            }
+
+            User user = usersRepository.findById(userId);
+
+            if (user == null) {
+                return Response.status(Response.Status.NOT_FOUND).build();
+            }
+
+            if (repository.alreadyExistUser(user)) {
+                return Response.status(Response.Status.CONFLICT)
+                        .entity("{\"message\": \"Usuário já está no estacionamento.\"}")
+                        .build();
+            }
+
+            Parking parking = new Parking();
+            Vehicle vehicleSearch = vehicleRepository.find("plate", entryUserRequest.getPlate()).firstResult();
+
+            if (repository.alreadyExistVehicle(vehicleSearch)) {
+                return Response.status(Response.Status.CONFLICT)
+                        .entity("{\"message\": \"Veículo já está no estacionamento\"}")
+                        .build();
+            }
+
+            if (vehicleSearch == null) {
+                Vehicle vehicle = new Vehicle();
+                vehicle.setType_vehicle(entryUserRequest.getType_vehicle());
+                vehicle.setPlate(entryUserRequest.getPlate());
+                vehicleRepository.persist(vehicle);
+                parking.setVehicle(vehicle);
+            } else {
+                parking.setVehicle(vehicleSearch);
+            }
+
+            parking.setUser(user);
+            parking.setEntry_time(LocalDateTime.now().toString());
+            repository.persist(parking);
+            repository.setParkingSize(repository.getParkingSize() - 1);
+            return Response.status(Response.Status.OK).entity(parking).build();
         }
-
-        if(!entryUserRequest.getType_vehicle().equals("car") && !entryUserRequest.getType_vehicle().equals("moto") ){
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("{\"message\": \"Tipo de veículo precisa ser 'car' ou 'moto'\"}")
-                    .build();
-        }
-
-        User user = usersRepository.findById(userId);
-
-        if(user == null){
-            return Response.status(Response.Status.NOT_FOUND).build();
-        }
-
-        if(repository.alreadyExistUser(user)){
-            return Response.status(Response.Status.CONFLICT)
-                    .entity("{\"message\": \"Usuário já está no estacionamento.\"}")
-                    .build();
-        }
-
-        Parking parking = new Parking();
-        Vehicle vehicleSearch = vehicleRepository.find("plate", entryUserRequest.getPlate()).firstResult();
-
-        if(repository.alreadyExistVehicle(vehicleSearch)){
-            return Response.status(Response.Status.CONFLICT)
-                    .entity("{\"message\": \"Veículo já está no estacionamento\"}")
-                    .build();
-        }
-
-        if(vehicleSearch == null){
-            Vehicle vehicle = new Vehicle();
-            vehicle.setType_vehicle(entryUserRequest.getType_vehicle());
-            vehicle.setPlate(entryUserRequest.getPlate());
-            vehicleRepository.persist(vehicle);
-            parking.setVehicle(vehicle);
-        }
-
-        else{
-            parking.setVehicle(vehicleSearch);
-        }
-
-        parking.setUser(user);
-        parking.setEntry_time(LocalDateTime.now().toString());
-        repository.persist(parking);
-        repository.setParkingSize(repository.getParkingSize()-1);
-        return Response.status(Response.Status.OK).entity(parking).build();
-
+        return Response.status(Response.Status.CONFLICT).entity("{\"Message\":\"O nosso estacionamento ainda não foi aberto ;)\"}").build();
     }
 
     @GET
@@ -111,7 +111,7 @@ public class ParkingResource {
 
     @GET
     @Path("{userId}")
-    @RolesAllowed({"User"})
+    @RolesAllowed({"User", "Admin"})
     public Response getValue(@PathParam("userId") Long userId){
         User user = usersRepository.findById(userId);
         if(user == null){
@@ -153,10 +153,12 @@ public class ParkingResource {
 
         //Adiciona os dados ao histórico
         History history = new History();
-        history.setUser(user);
         history.setVehicle(parking.getVehicle());
         history.setEntry_time(parking.getEntry_time());
         history.setExit_time(LocalDateTime.now().toString());
+        history.setUserName(parking.getUser().getName());
+        history.setUserCpf(parking.getUser().getCpf());
+        history.setUserEmail(parking.getUser().getEmail());
         historyRepository.persist(history);
 
         return Response.ok().build();

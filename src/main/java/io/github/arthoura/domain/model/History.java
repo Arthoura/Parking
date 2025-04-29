@@ -11,10 +11,6 @@ public class History {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User user;
-
-    @ManyToOne
     @JoinColumn(name = "vehicles_id")
     private Vehicle vehicle;
 
@@ -24,20 +20,21 @@ public class History {
     @Column(name = "exit_time")
     private String exit_time;
 
+    @Column(name = "user_name")
+    private String userName;
+
+    @Column(name = "user_cpf")
+    private String userCpf;
+
+    @Column(name = "user_email")
+    private String userEmail;
+
     public Long getId() {
         return id;
     }
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
     }
 
     public Vehicle getVehicle() {
@@ -62,5 +59,29 @@ public class History {
 
     public void setExit_time(String exit_time) {
         this.exit_time = exit_time;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getUserCpf() {
+        return userCpf;
+    }
+
+    public void setUserCpf(String userCpf) {
+        this.userCpf = userCpf;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
     }
 }

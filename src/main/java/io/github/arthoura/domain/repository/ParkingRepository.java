@@ -9,6 +9,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class ParkingRepository implements PanacheRepository<Parking> {
     private Integer parkingSize = 0;
+    private boolean initialized = false;
 
     public Boolean alreadyExistUser(User user){
         if(find("user", user).firstResult() == null){
@@ -30,5 +31,13 @@ public class ParkingRepository implements PanacheRepository<Parking> {
 
     public void setParkingSize(Integer parkingSize) {
         this.parkingSize = parkingSize;
+    }
+
+    public boolean isInitialized() {
+        return initialized;
+    }
+
+    public void setInitialized(boolean initialized) {
+        this.initialized = initialized;
     }
 }
