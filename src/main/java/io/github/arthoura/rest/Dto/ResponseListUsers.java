@@ -20,7 +20,7 @@ public class ResponseListUsers {
 
     public static ResponseListUsers listVehicles(List<Parking> completeParking){
         List<ResponseListUsersInfos> collect = completeParking.stream()
-                .map(cp -> new ResponseListUsersInfos(cp.getVehicle(), cp.getUser().getId(), cp.getUser().getName()))
+                .map(cp -> new ResponseListUsersInfos(cp.getVehicle(), cp.getUser().getId(), cp.getUser().getName(), cp.getEntry_time()))
                 .collect(Collectors.toList());
         return new ResponseListUsers(completeParking.size(), collect);
     }

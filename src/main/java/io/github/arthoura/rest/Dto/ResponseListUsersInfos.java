@@ -8,11 +8,13 @@ public class ResponseListUsersInfos {
     private Long userId;
     private String userName;
     private Vehicle vehicle;
+    private String entry_time;
 
-    public ResponseListUsersInfos(Vehicle vehicle, Long userId, String userName) {
+    public ResponseListUsersInfos(Vehicle vehicle, Long userId, String userName, String entry_time) {
         this.vehicle = vehicle;
         this.userName = userName;
         this.userId = userId;
+        this.entry_time = entry_time;
     }
 
     public Vehicle getVehicle() {
@@ -39,4 +41,11 @@ public class ResponseListUsersInfos {
         this.userName = userName;
     }
 
+    public String getEntry_time() {
+        return entry_time;
+    }
+
+    public void setEntry_time(String entry_time) {
+        this.entry_time = entry_time;
+    }
 }

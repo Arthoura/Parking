@@ -1,6 +1,5 @@
 package io.github.arthoura.domain.model;
 
-import io.github.arthoura.VehicleType;
 import jakarta.persistence.*;
 
 @Entity

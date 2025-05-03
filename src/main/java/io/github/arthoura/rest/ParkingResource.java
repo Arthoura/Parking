@@ -1,6 +1,6 @@
 package io.github.arthoura.rest;
 
-import io.github.arthoura.VehicleType;
+import io.github.arthoura.enums.VehicleType;
 import io.github.arthoura.domain.model.History;
 import io.github.arthoura.domain.model.Parking;
 import io.github.arthoura.domain.model.User;
@@ -57,9 +57,9 @@ public class ParkingResource {
                         .build();
             }
 
-            if (!entryUserRequest.getType_vehicle().equals("car") && !entryUserRequest.getType_vehicle().equals("moto")) {
+            if (!VehicleType.isValidType(entryUserRequest.getType_vehicle())) {
                 return Response.status(Response.Status.BAD_REQUEST)
-                        .entity("{\"message\": \"Tipo de veículo precisa ser 'car' ou 'moto'\"}")
+                        .entity("{\"message\": \"Tipo de veículo precisa ser um dos seguintes: " + VehicleType.getVehiclesAsList()  + "\"}")
                         .build();
             }
 
@@ -124,20 +124,15 @@ public class ParkingResource {
         ResponseCalculateValue responseCalculateValue = new ResponseCalculateValue();
         long minutes = Duration.between(entryTime, exitTime).toMinutes();
 
-        if( minutes <= 5){
-            responseCalculateValue.setValue(Long.parseLong("0"));
-            return Response.status(Response.Status.OK).entity(responseCalculateValue).build();
-        }
-
-        if(vehicleType.equals("car")){
-             responseCalculateValue.setValue(VehicleType.CAR.calcularValor(minutes));
-        }
-
-        else if(vehicleType.equals("moto")){
-            responseCalculateValue.setValue(VehicleType.MOTO.calcularValor(minutes));
-        }
+        responseCalculateValue.setValue(VehicleType.valueOf(vehicleType.toUpperCase()).calcularValor(minutes));
 
         return Response.status(Response.Status.OK).entity(responseCalculateValue).build();
+    }
+
+    @GET
+    @Path("/history")
+    public Response getHistory(){
+        return Response.ok().entity(historyRepository.findAll().list()).build();
     }
 
     @DELETE
@@ -146,7 +141,17 @@ public class ParkingResource {
     @RolesAllowed({"User"})
     public Response exitUser(@PathParam("userId") Long userId){
         User user = usersRepository.findById(userId);
+        if(user == null){
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("{\"message\": \"Usuário não encontrado :/\"} ")
+                    .build();
+        }
         Parking parking = repository.find("user", user).firstResult();
+        if(parking == null){
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity("{\"message\": \"Desculpe, mas parece que você não estacionou seu veículo aqui :/\"} ")
+                    .build();
+        }
         repository.delete(parking);
         repository.setParkingSize(repository.getParkingSize()+1);
 
